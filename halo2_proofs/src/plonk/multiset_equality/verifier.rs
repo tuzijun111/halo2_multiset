@@ -8,7 +8,7 @@ use crate::{
     poly::{multiopen::VerifierQuery, Rotation},
     transcript::{EncodedChallenge, TranscriptRead},
 };
-use ff::{Field, FieldExt};
+use ff::Field;
 
 pub struct Committed<C: CurveAffine> {
     product_commitment: C,
@@ -20,7 +20,7 @@ pub struct Evaluated<C: CurveAffine> {
     product_next_eval: C::Scalar,
 }
 
-impl<F: FieldExt> Argument<F> {
+impl<F: Field> Argument<F> {
     pub(in crate::plonk) fn read_product_commitment<
         C: CurveAffine,
         E: EncodedChallenge<C>,
@@ -65,7 +65,7 @@ impl<C: CurveAffine> Evaluated<C> {
         fixed_evals: &[C::Scalar],
         instance_evals: &[C::Scalar],
     ) -> impl Iterator<Item = C::Scalar> + 'a {
-        let active_rows = C::Scalar::one() - (l_last + l_blind);
+        let active_rows = C::Scalar::ONE - (l_last + l_blind);
 
         let product_expression = || {
             let compress_expressions = |expressions: &[Expression<C::Scalar>]| {
@@ -84,7 +84,7 @@ impl<C: CurveAffine> Evaluated<C> {
                             &|a, scalar| a * &scalar,
                         )
                     })
-                    .fold(C::Scalar::zero(), |acc, eval| acc * &*theta + &eval)
+                    .fold(C::Scalar::ZERO, |acc, eval| acc * &*theta + &eval)
             };
             // z(\omega X) (\theta^{m-1} a'_0(X) + ... + a'_{m-1}(X) + \beta)
             // - z(X) (\theta^{m-1} a_0(X) + ... + a_{m-1}(X) + \beta)
@@ -100,7 +100,7 @@ impl<C: CurveAffine> Evaluated<C> {
         std::iter::empty()
             .chain(
                 // l_0(X) * (1 - z(X)) = 0
-                Some(l_0 * &(C::Scalar::one() - &self.product_eval)),
+                Some(l_0 * &(C::Scalar::ONE - &self.product_eval)),
             )
             .chain(
                 // l_last(X) * (z(X)^2 - z(X)) = 0

@@ -1,9 +1,8 @@
 use std::ops::{Mul, MulAssign};
 
-use ff::{BatchInvert, Field};
+use ff::{BatchInvert, Field, WithSmallOrderMulGroup};
 use group::Curve;
 use pasta_curves::arithmetic::CurveAffine;
-use ff::FieldExt;
 use rand_core::RngCore;
 
 use super::Argument;
@@ -45,7 +44,7 @@ pub(in crate::plonk) struct Evaluated<C: CurveAffine> {
     constructed: Constructed<C>,
 }
 
-impl<F: FieldExt> Argument<F> {
+impl<F: WithSmallOrderMulGroup<3>> Argument<F> {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::plonk) fn compress_expressions<
         'a,
@@ -131,13 +130,13 @@ impl<F: FieldExt> Argument<F> {
 
             // Compressed version of expressions
             let compressed_expressions = expression_values.iter().fold(
-                poly::Ast::ConstantTerm(C::Scalar::zero()),
+                poly::Ast::ConstantTerm(C::Scalar::ZERO),
                 |acc, expression| &(acc * *theta) + expression,
             );
 
             // Compressed version of cosets
             let compressed_cosets = cosets.iter().fold(
-                poly::Ast::<_, _, ExtendedLagrangeCoeff>::ConstantTerm(C::Scalar::zero()),
+                poly::Ast::<_, _, ExtendedLagrangeCoeff>::ConstantTerm(C::Scalar::ZERO),
                 |acc, eval| acc * poly::Ast::ConstantTerm(*theta) + eval.clone(),
             );
 
@@ -184,7 +183,7 @@ impl<C: CurveAffine, Ev> Compressed<C, Ev> {
         // where a(X) is the compression of the original expressions in this multiset equality check,
         // a'(X) is the compression of the permuted expressions,
         // and i is the ith row of the expression.
-        let mut product = vec![C::Scalar::zero(); params.n as usize];
+        let mut product = vec![C::Scalar::ZERO; params.n as usize];
 
         // Denominator uses the permuted expression
         parallelize(&mut product, |product, start| {
@@ -223,9 +222,9 @@ impl<C: CurveAffine, Ev> Compressed<C, Ev> {
 
         // Compute the evaluations of the lookup product polynomial
         // over our domain, starting with z[0] = 1
-        let z = std::iter::once(C::Scalar::one())
+        let z = std::iter::once(C::Scalar::ONE)
             .chain(product)
-            .scan(C::Scalar::one(), |state, cur| {
+            .scan(C::Scalar::ONE, |state, cur| {
                 *state *= &cur;
                 Some(*state)
             })
